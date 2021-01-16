@@ -6,12 +6,19 @@ import "context"
 type Registry interface {
 	Register(ctx context.Context, svc Service) error
 	Deregister(ctx context.Context, svc Service) error
-	GetService(ctx context.Context, name string) ([]Service, error)
-	Watch(name string, o Observer) error
 }
 
-// Observer is watch observer.
-type Observer func(action string, svc Service)
+// Discovery is service discovery interface.
+type Discovery interface {
+	Service(ctx context.Context, name string) ([]Service, error)
+	Resolve(name string) Watcher
+}
+
+// Watcher is service watcher.
+type Watcher interface {
+	Watch(ctx context.Context) ([]Service, error)
+	Close()
+}
 
 // Service is service interface.
 type Service interface {
@@ -19,13 +26,6 @@ type Service interface {
 	Name() string
 	Version() string
 	Metadata() map[string]string
-	Endpoints() []Endpoint
-}
-
-// Endpoint is endpoint interface.
-type Endpoint interface {
-	Scheme() string
 	Host() string
-	Port() int
-	IsSecure() bool
+	Endpoints() []string
 }
