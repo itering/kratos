@@ -20,11 +20,10 @@ type Discovery interface {
 
 // Watcher is service watcher.
 type Watcher interface {
-	// Watch Return services in the following three cases:
+	// Watch Return services in the following two cases:
 	// 1.the first time to watch and the service instance list is not empty
 	// 2.any service instance changes found
-	// 3.reached the context.Deadline or conetxt.Cancel
-	// If the above three conditions are not met, it will block
+	// If the above two conditions are not met, it will block until context deadline exceeded or canceled
 	Watch(ctx context.Context) ([]Service, error)
 	Close()
 }
