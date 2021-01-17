@@ -12,8 +12,8 @@ type Registrar interface {
 type Discovery interface {
 	// GetService return the service instances in memory according to the service name.
 	GetService(name string) ([]Service, error)
-	// GetService return all service instances in memory.
-	ListService() ([]Service, error)
+	// GetService return all service instances in memory which aggregated according to service name.
+	ListService() (map[string][]Service, error)
 	// Resolve creates a watcher according to the service name.
 	Resolve(ctx context.Context, name string) (Watcher, error)
 }
