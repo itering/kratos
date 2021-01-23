@@ -13,7 +13,7 @@ import (
 type ServerOption func(o *Server)
 
 // EncodeErrorFunc is encode error func.
-type EncodeErrorFunc func(ctx context.Context, err error) error
+type EncodeErrorFunc func(err error) error
 
 // ServerMiddleware with server middleware.
 func ServerMiddleware(m ...middleware.Middleware) ServerOption {
@@ -62,7 +62,7 @@ func (s *Server) Interceptor() grpc.UnaryServerInterceptor {
 		}
 		resp, err := h(ctx, req)
 		if err != nil {
-			return nil, s.errorEncoder(ctx, err)
+			return nil, s.errorEncoder(err)
 		}
 		return resp, nil
 	}

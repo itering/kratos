@@ -102,12 +102,12 @@ func (s *Server) registerHandle(srv interface{}, md MethodDesc) {
 
 		reply, err := handler(req.Context(), req)
 		if err != nil {
-			s.opts.errorEncoder(req.Context(), err, res, req)
+			s.opts.errorEncoder(err, res, req)
 			return
 		}
 
-		if err := s.opts.responseEncoder(req.Context(), reply, res, req); err != nil {
-			s.opts.errorEncoder(req.Context(), err, res, req)
+		if err := s.opts.responseEncoder(reply, res, req); err != nil {
+			s.opts.errorEncoder(err, res, req)
 			return
 		}
 

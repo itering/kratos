@@ -4,13 +4,14 @@ import (
 	"context"
 
 	"github.com/go-kratos/kratos/v2/errors"
+	"github.com/golang/protobuf/proto"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 // DefaultErrorEncoder is default error encoder.
-func DefaultErrorEncoder(ctx context.Context, err error) error {
+func DefaultErrorEncoder(err error) error {
 	se, ok := err.(*errors.StatusError)
 	if !ok {
 		se = &errors.StatusError{
@@ -19,10 +20,13 @@ func DefaultErrorEncoder(ctx context.Context, err error) error {
 		}
 	}
 	gs := status.Newf(codes.Code(se.Code), "%s: %s", se.Reason, se.Message)
-	gs, err = gs.WithDetails(&errdetails.ErrorInfo{
-		Reason:   se.Reason,
-		Metadata: map[string]string{"message": se.Message},
-	})
+	details := []proto.Message{
+		&errdetails.ErrorInfo{
+			Reason:   se.Reason,
+			Metadata: map[string]string{"message": se.Message},
+		},
+	}
+	gs, err = gs.WithDetails(details...)
 	if err != nil {
 		return err
 	}
@@ -47,6 +51,5 @@ func DefaultErrorDecoder(ctx context.Context, err error) error {
 		Code:    int32(gs.Code()),
 		Reason:  reason,
 		Message: message,
-		Details: gs.Details(),
 	}
 }

@@ -15,17 +15,7 @@ const (
 var _ error = (*StatusError)(nil)
 
 // StatusError contains an error response from the server.
-type StatusError struct {
-	Code    int32
-	Reason  string
-	Message string
-	Details []interface{}
-}
-
-// WithDetails provided details messages appended to the errors.
-func (e *StatusError) WithDetails(details ...interface{}) {
-	e.Details = []interface{}{details}
-}
+type StatusError Status
 
 // Is matches each error in the chain with the target value.
 func (e *StatusError) Is(target error) bool {
@@ -41,12 +31,11 @@ func (e *StatusError) Error() string {
 }
 
 // Error returns a Status representing c and msg.
-func Error(code int32, reason, message string, details ...interface{}) error {
+func Error(code int32, reason, message string) error {
 	return &StatusError{
 		Code:    code,
 		Reason:  reason,
 		Message: message,
-		Details: details,
 	}
 }
 

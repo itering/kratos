@@ -1,18 +1,15 @@
 package http
 
 import (
-	"context"
 	"io/ioutil"
 	"net/http"
 
+	"github.com/go-kratos/kratos/v2/encoding"
 	"github.com/go-kratos/kratos/v2/errors"
-	"google.golang.org/genproto/googleapis/rpc/errdetails"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 // DefaultRequestDecoder default request decoder.
-func DefaultRequestDecoder(ctx context.Context, in interface{}, req *http.Request) error {
+func DefaultRequestDecoder(in interface{}, req *http.Request) error {
 	codec, err := RequestCodec(req)
 	if err != nil {
 		return err
@@ -29,7 +26,7 @@ func DefaultRequestDecoder(ctx context.Context, in interface{}, req *http.Reques
 }
 
 // DefaultResponseEncoder is default response encoder.
-func DefaultResponseEncoder(ctx context.Context, out interface{}, res http.ResponseWriter, req *http.Request) error {
+func DefaultResponseEncoder(out interface{}, res http.ResponseWriter, req *http.Request) error {
 	contentType, codec, err := ResponseCodec(req)
 	if err != nil {
 		return err
@@ -44,23 +41,14 @@ func DefaultResponseEncoder(ctx context.Context, out interface{}, res http.Respo
 }
 
 // DefaultErrorEncoder is default errors encoder.
-func DefaultErrorEncoder(ctx context.Context, err error, res http.ResponseWriter, req *http.Request) {
+func DefaultErrorEncoder(err error, res http.ResponseWriter, req *http.Request) {
 	code, se := StatusError(err)
 	contentType, codec, err := ResponseCodec(req)
 	if err != nil {
 		res.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	gs := status.Newf(codes.Code(se.Code), "%s: %s", se.Reason, se.Message)
-	gs, err = gs.WithDetails(&errdetails.ErrorInfo{
-		Reason:   se.Reason,
-		Metadata: map[string]string{"message": se.Message},
-	})
-	if err != nil {
-		res.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	data, err := codec.Marshal(gs.Proto())
+	data, err := codec.Marshal(se)
 	if err != nil {
 		res.WriteHeader(http.StatusInternalServerError)
 		return
@@ -68,4 +56,25 @@ func DefaultErrorEncoder(ctx context.Context, err error, res http.ResponseWriter
 	res.Header().Set("content-type", contentType)
 	res.WriteHeader(code)
 	res.Write(data)
+}
+
+// DefaultErrorDecoder is default error decoder.
+func DefaultErrorDecoder(req *http.Request, res *http.Response) error {
+	if res.StatusCode >= 200 && res.StatusCode <= 299 {
+		return nil
+	}
+	slurp, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+	contentType := req.Header.Get("content-type")
+	codec := encoding.GetCodec(contentSubtype(contentType))
+	if codec == nil {
+		return errors.Internal("Errors_UnknownCodec", contentType)
+	}
+	se := &errors.StatusError{}
+	if err := codec.Unmarshal(slurp, se); err != nil {
+		return err
+	}
+	return se
 }

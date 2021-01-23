@@ -1,7 +1,6 @@
 package http
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/go-kratos/kratos/v2/middleware"
@@ -19,13 +18,13 @@ type serverOptions struct {
 }
 
 // DecodeRequestFunc is decode request func.
-type DecodeRequestFunc func(ctx context.Context, in interface{}, req *http.Request) error
+type DecodeRequestFunc func(in interface{}, req *http.Request) error
 
 // EncodeResponseFunc is encode response func.
-type EncodeResponseFunc func(ctx context.Context, out interface{}, res http.ResponseWriter, req *http.Request) error
+type EncodeResponseFunc func(out interface{}, res http.ResponseWriter, req *http.Request) error
 
 // EncodeErrorFunc is encode error func.
-type EncodeErrorFunc func(ctx context.Context, err error, res http.ResponseWriter, req *http.Request)
+type EncodeErrorFunc func(err error, res http.ResponseWriter, req *http.Request)
 
 // ServerDecodeRequestFunc with decode request option.
 func ServerDecodeRequestFunc(fn EncodeErrorFunc) ServerOption {
