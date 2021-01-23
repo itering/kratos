@@ -9,7 +9,6 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/pelletier/go-toml v1.8.1
-	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
 	golang.org/x/net v0.0.0-20201224014010-6772e930b67b // indirect
 	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
 	golang.org/x/sys v0.0.0-20210113181707-4bcb84eeeb78 // indirect
