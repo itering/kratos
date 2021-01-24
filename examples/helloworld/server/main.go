@@ -14,8 +14,8 @@ import (
 	servergrpc "github.com/go-kratos/kratos/v2/server/grpc"
 	serverhttp "github.com/go-kratos/kratos/v2/server/http"
 	"github.com/go-kratos/kratos/v2/transport"
-	transportgrpc "github.com/go-kratos/kratos/v2/transport/grpc"
-	transporthttp "github.com/go-kratos/kratos/v2/transport/http"
+	transgrpc "github.com/go-kratos/kratos/v2/transport/grpc"
+	transhttp "github.com/go-kratos/kratos/v2/transport/http"
 
 	"google.golang.org/grpc"
 )
@@ -68,11 +68,11 @@ func logger3(logger log.Logger) middleware.Middleware {
 			if ok {
 				log.Infof("transport: %+v", tr)
 			}
-			h, ok := transporthttp.FromContext(ctx)
+			h, ok := transhttp.FromContext(ctx)
 			if ok {
 				log.Infof("http: [%s] %s", h.Request.Method, h.Request.URL.Path)
 			}
-			g, ok := transportgrpc.FromContext(ctx)
+			g, ok := transgrpc.FromContext(ctx)
 			if ok {
 				log.Infof("grpc: %s", g.FullMethod)
 			}
@@ -94,17 +94,17 @@ func main() {
 	s := &server{}
 	app := kratos.New()
 
-	httpTransport := transporthttp.NewServer(transporthttp.ServerMiddleware(logger1(logger), logger2(logger)))
-	httpTransport.Use(s, logger3(logger))
+	httpTrans := transhttp.NewServer(transhttp.ServerMiddleware(logger1(logger), logger2(logger)))
+	httpTrans.Use(s, logger3(logger))
 
-	grpcTransport := transportgrpc.NewServer(transportgrpc.ServerMiddleware(logger1(logger), logger2(logger)))
-	grpcTransport.Use(s, logger3(logger))
+	grpcTrans := transgrpc.NewServer(transgrpc.ServerMiddleware(logger1(logger), logger2(logger)))
+	grpcTrans.Use(s, logger3(logger))
 
-	httpServer := serverhttp.NewServer("tcp", ":8000", serverhttp.Handler(httpTransport))
-	grpcServer := servergrpc.NewServer("tcp", ":9000", grpc.UnaryInterceptor(grpcTransport.Interceptor()))
+	httpServer := serverhttp.NewServer("tcp", ":8000", serverhttp.Handler(httpTrans))
+	grpcServer := servergrpc.NewServer("tcp", ":9000", grpc.UnaryInterceptor(grpcTrans.Interceptor()))
 
 	pb.RegisterGreeterServer(grpcServer, s)
-	pb.RegisterGreeterHTTPServer(httpTransport, s)
+	pb.RegisterGreeterHTTPServer(httpTrans, s)
 
 	app.Append(httpServer)
 	app.Append(grpcServer)
