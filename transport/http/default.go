@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/go-kratos/kratos/v2/encoding"
 	"github.com/go-kratos/kratos/v2/errors"
 )
 
@@ -56,25 +55,4 @@ func DefaultErrorEncoder(err error, res http.ResponseWriter, req *http.Request) 
 	res.Header().Set("content-type", contentType)
 	res.WriteHeader(code)
 	res.Write(data)
-}
-
-// DefaultErrorDecoder is default error decoder.
-func DefaultErrorDecoder(req *http.Request, res *http.Response) error {
-	if res.StatusCode >= 200 && res.StatusCode <= 299 {
-		return nil
-	}
-	slurp, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return err
-	}
-	contentType := req.Header.Get("content-type")
-	codec := encoding.GetCodec(contentSubtype(contentType))
-	if codec == nil {
-		return errors.Internal("UnknownCodec", contentType)
-	}
-	se := &errors.StatusError{}
-	if err := codec.Unmarshal(slurp, se); err != nil {
-		return err
-	}
-	return se
 }
