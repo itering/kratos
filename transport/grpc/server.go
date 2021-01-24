@@ -22,6 +22,13 @@ func ServerMiddleware(m ...middleware.Middleware) ServerOption {
 	}
 }
 
+// ServerErrorEncoder with server error encoder.
+func ServerErrorEncoder(d EncodeErrorFunc) ServerOption {
+	return func(o *Server) {
+		o.errorEncoder = d
+	}
+}
+
 // Server is a gRPC server wrapper.
 type Server struct {
 	middleware       middleware.Middleware

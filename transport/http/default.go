@@ -16,11 +16,11 @@ func DefaultRequestDecoder(in interface{}, req *http.Request) error {
 	}
 	data, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		return errors.DataLoss("Errors_DataLoss", err.Error())
+		return errors.DataLoss("DataLoss", err.Error())
 	}
 	defer req.Body.Close()
 	if err = codec.Unmarshal(data, in); err != nil {
-		return errors.InvalidArgument("Errors_CodecUnmarshal", err.Error())
+		return errors.InvalidArgument("CodecUnmarshal", err.Error())
 	}
 	return nil
 }
@@ -70,7 +70,7 @@ func DefaultErrorDecoder(req *http.Request, res *http.Response) error {
 	contentType := req.Header.Get("content-type")
 	codec := encoding.GetCodec(contentSubtype(contentType))
 	if codec == nil {
-		return errors.Internal("Errors_UnknownCodec", contentType)
+		return errors.Internal("UnknownCodec", contentType)
 	}
 	se := &errors.StatusError{}
 	if err := codec.Unmarshal(slurp, se); err != nil {

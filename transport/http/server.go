@@ -25,13 +25,61 @@ type ServiceDesc struct {
 	Metadata    interface{}
 }
 
-type methodHandler func(srv interface{}, ctx context.Context, req *http.Request) (interface{}, error)
+type serverMethodHandler func(srv interface{}, ctx context.Context, req *http.Request) (interface{}, error)
 
 // MethodDesc represents a HTTP service's method specification.
 type MethodDesc struct {
 	Path    string
 	Method  string
-	Handler methodHandler
+	Handler serverMethodHandler
+}
+
+// ServerOption is HTTP server option.
+type ServerOption func(*serverOptions)
+
+// serverOptions is HTTP server options.
+type serverOptions struct {
+	requestDecoder  ServerDecodeRequestFunc
+	responseEncoder ServerEncodeResponseFunc
+	errorEncoder    ServerEncodeErrorFunc
+	middleware      middleware.Middleware
+}
+
+// ServerDecodeRequestFunc is decode request func.
+type ServerDecodeRequestFunc func(in interface{}, req *http.Request) error
+
+// ServerEncodeResponseFunc is encode response func.
+type ServerEncodeResponseFunc func(out interface{}, res http.ResponseWriter, req *http.Request) error
+
+// ServerEncodeErrorFunc is encode error func.
+type ServerEncodeErrorFunc func(err error, res http.ResponseWriter, req *http.Request)
+
+// ServerRequestDecoder with decode request option.
+func ServerRequestDecoder(fn ServerEncodeErrorFunc) ServerOption {
+	return func(o *serverOptions) {
+		o.errorEncoder = fn
+	}
+}
+
+// ServerResponseEncoder with response handler option.
+func ServerResponseEncoder(fn ServerEncodeResponseFunc) ServerOption {
+	return func(o *serverOptions) {
+		o.responseEncoder = fn
+	}
+}
+
+// ServerErrorEncoder with error handler option.
+func ServerErrorEncoder(fn ServerEncodeErrorFunc) ServerOption {
+	return func(o *serverOptions) {
+		o.errorEncoder = fn
+	}
+}
+
+// ServerMiddleware with server middleware option.
+func ServerMiddleware(m ...middleware.Middleware) ServerOption {
+	return func(o *serverOptions) {
+		o.middleware = middleware.Chain(m[0], m[1:]...)
+	}
 }
 
 // Server is a HTTP server wrapper.

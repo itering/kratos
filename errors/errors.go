@@ -27,7 +27,7 @@ func (e *StatusError) Is(target error) bool {
 }
 
 func (e *StatusError) Error() string {
-	return fmt.Sprintf("error: code = %d desc = %s details = %+v", e.Code, e.Message, e.Details)
+	return fmt.Sprintf("error: code = %d reason = %s message = %s details = %+v", e.Code, e.Reason, e.Message, e.Details)
 }
 
 // Error returns a Status representing c and msg.

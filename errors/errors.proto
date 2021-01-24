@@ -5,10 +5,10 @@ package kratos.errors;
 import "google/protobuf/any.proto";
 
 option cc_enable_arenas = true;
-option go_package = "github.com/go-kratos/kratos/errors;errors";
+option go_package = "github.com/go-kratos/kratos/v2/errors;errors";
 option java_multiple_files = true;
-option java_outer_classname = "StatusProto";
-option java_package = "dev.kratos.rpc";
+option java_outer_classname = "ErrorsProto";
+option java_package = "dev.kratos.errors";
 option objc_class_prefix = "KratosErrors";
 
 message Status {

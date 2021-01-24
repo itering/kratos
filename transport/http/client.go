@@ -2,7 +2,6 @@ package http
 
 import (
 	"context"
-	"errors"
 	"net"
 	"net/http"
 	"time"
@@ -12,15 +11,23 @@ import (
 type ClientOption func(*clientOptions)
 
 type clientOptions struct {
-	dialTimeout    time.Duration
-	requestTimeout time.Duration
-	keepAlive      time.Duration
-	userAgent      string
-	errorDecoder   DecodeErrorFunc
+	dialTimeout     time.Duration
+	requestTimeout  time.Duration
+	keepAlive       time.Duration
+	userAgent       string
+	errorDecoder    ClientDecodeErrorFunc
+	requestEncoder  ClientEncodeRequestFunc
+	responseDecoder ClientDecoderResponseFunc
 }
 
-// DecodeErrorFunc is decode error func.
-type DecodeErrorFunc func(req *http.Request, res *http.Response) error
+// ClientDecodeErrorFunc is client error decoder.
+type ClientDecodeErrorFunc func(req *http.Request, res *http.Response) error
+
+// ClientEncodeRequestFunc is client request encoder.
+type ClientEncodeRequestFunc func(method string, req interface{}) (contentType string, body []byte, err error)
+
+// ClientDecoderResponseFunc is client response decoder.
+type ClientDecoderResponseFunc func(res *http.Response, v interface{}) error
 
 // ClientDialTimeout with client dial timeout.
 func ClientDialTimeout(timeout time.Duration) ClientOption {
@@ -51,16 +58,47 @@ func ClientUserAgent(ua string) ClientOption {
 }
 
 // ClientErrorDecoder with client error decoder.
-func ClientErrorDecoder(d DecodeErrorFunc) ClientOption {
+func ClientErrorDecoder(d ClientDecodeErrorFunc) ClientOption {
 	return func(o *clientOptions) {
 		o.errorDecoder = d
 	}
 }
 
+type clientTransport struct {
+	base http.RoundTripper
+	opts clientOptions
+}
+
+func newClientTransport(opts clientOptions) *clientTransport {
+	base := &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout:   opts.dialTimeout,
+			KeepAlive: opts.keepAlive,
+		}).DialContext,
+	}
+	return &clientTransport{base: base, opts: opts}
+}
+
+// RoundTrip is transport round trip.
+func (c *clientTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if c.opts.userAgent != "" && req.Header.Get("User-Agent") == "" {
+		req.Header.Set("User-Agent", c.opts.userAgent)
+	}
+	ctx, cancel := context.WithTimeout(req.Context(), c.opts.requestTimeout)
+	defer cancel()
+	res, err := c.base.RoundTrip(req.WithContext(ctx))
+	if err != nil {
+		return nil, err
+	}
+	if err := c.opts.errorDecoder(req, res); err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
 // Client is a HTTP transport client.
 type Client struct {
-	opts clientOptions
-	tr   *http.Transport
+	client *http.Client
 }
 
 // NewClient new a HTTP transport client.
@@ -75,35 +113,13 @@ func NewClient(opts ...ClientOption) *Client {
 		o(&options)
 	}
 	return &Client{
-		opts: options,
-		tr: &http.Transport{
-			DialContext: (&net.Dialer{
-				Timeout:   options.dialTimeout,
-				KeepAlive: options.keepAlive,
-			}).DialContext,
+		client: &http.Client{
+			Transport: newClientTransport(options),
 		},
 	}
 }
 
-// RoundTrip is transport round trip.
-func (c *Client) RoundTrip(req *http.Request) (*http.Response, error) {
-	if c.tr == nil {
-		return nil, errors.New("transport: no Transport specified")
-	}
-	if c.opts.userAgent != "" && req.Header.Get("User-Agent") == "" {
-		req.Header.Set("User-Agent", c.opts.userAgent)
-	}
-	if c.opts.requestTimeout > 0 {
-		ctx, cancel := context.WithTimeout(req.Context(), c.opts.requestTimeout)
-		defer cancel()
-		req = req.WithContext(ctx)
-	}
-	res, err := c.tr.RoundTrip(req)
-	if err != nil {
-		return nil, err
-	}
-	if err := c.opts.errorDecoder(req, res); err != nil {
-		return nil, err
-	}
-	return res, nil
+// Do sends an HTTP request and returns an HTTP response.
+func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, error) {
+	return c.client.Do(req)
 }
