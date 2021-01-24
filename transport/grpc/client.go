@@ -11,7 +11,7 @@ import (
 type ClientOption func(o *Client)
 
 // DecodeErrorFunc is encode error func.
-type DecodeErrorFunc func(ctx context.Context, err error) error
+type DecodeErrorFunc func(err error) error
 
 // ClientErrorDecoder with client error decoder.
 func ClientErrorDecoder(d DecodeErrorFunc) ClientOption {
@@ -71,7 +71,7 @@ func NewClient(target string, opts ...ClientOption) (*grpc.ClientConn, error) {
 	var grpcOpts = []grpc.DialOption{
 		grpc.WithTimeout(client.timeout),
 		grpc.WithUnaryInterceptor(
-			client.chainUnary(client.unaryInterceptor()),
+			ClientChainUnary(append(client.ints, ClientErrorInterceptor(client.errorDecoder))...),
 		),
 	}
 	if client.insecure {
@@ -80,17 +80,18 @@ func NewClient(target string, opts ...ClientOption) (*grpc.ClientConn, error) {
 	return grpc.DialContext(client.ctx, target, grpcOpts...)
 }
 
-func (c *Client) unaryInterceptor() grpc.UnaryClientInterceptor {
-	in := func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+// ClientErrorInterceptor returns client error interceptor.
+func ClientErrorInterceptor(errorDecoder DecodeErrorFunc) grpc.UnaryClientInterceptor {
+	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		if err := invoker(ctx, method, req, reply, cc, opts...); err != nil {
-			return c.errorDecoder(ctx, err)
+			return errorDecoder(err)
 		}
 		return nil
 	}
-	return c.chainUnary(append(c.ints, in)...)
 }
 
-func (c *Client) chainUnary(ints ...grpc.UnaryClientInterceptor) grpc.UnaryClientInterceptor {
+// ClientChainUnary .
+func ClientChainUnary(ints ...grpc.UnaryClientInterceptor) grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		chain := func(in grpc.UnaryClientInterceptor, invoker grpc.UnaryInvoker) grpc.UnaryInvoker {
 			return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, opts ...grpc.CallOption) error {

@@ -1,8 +1,6 @@
 package grpc
 
 import (
-	"context"
-
 	"github.com/go-kratos/kratos/v2/errors"
 	"github.com/golang/protobuf/proto"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
@@ -34,7 +32,7 @@ func DefaultErrorEncoder(err error) error {
 }
 
 // DefaultErrorDecoder is default error decoder.
-func DefaultErrorDecoder(ctx context.Context, err error) error {
+func DefaultErrorDecoder(err error) error {
 	gs := status.Convert(err)
 	var (
 		reason  string

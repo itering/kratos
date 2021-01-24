@@ -28,6 +28,11 @@ func callHTTP() {
 		log.Fatal(err)
 	}
 	log.Printf("hello %s\n", reply.Message)
+	// returns error
+	_, err = client.Get("http://127.0.0.1:8000/helloworld/error")
+	if err != nil {
+		log.Printf("SayHello error: %v\n", err)
+	}
 }
 
 func callGRPC() {
