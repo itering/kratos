@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/go-kratos/kratos/v2/errors"
 	pb "github.com/go-kratos/kratos/v2/examples/helloworld/helloworld"
 	transgrpc "github.com/go-kratos/kratos/v2/transport/grpc"
 	transhttp "github.com/go-kratos/kratos/v2/transport/http"
@@ -24,7 +25,7 @@ func callHTTP() {
 		log.Fatal(err)
 	}
 	var reply pb.HelloReply
-	if err := transhttp.ClientDecodeBody(resp, &reply); err != nil {
+	if err := transhttp.DecodeResponse(resp, &reply); err != nil {
 		log.Fatal(err)
 	}
 	log.Printf("hello %s\n", reply.Message)
@@ -32,6 +33,9 @@ func callHTTP() {
 	_, err = client.Get("http://127.0.0.1:8000/helloworld/error")
 	if err != nil {
 		log.Printf("SayHello error: %v\n", err)
+	}
+	if errors.IsInvalidArgument(err) {
+		log.Printf("SayHello error is invalid argument: %v\n", err)
 	}
 }
 
@@ -52,6 +56,9 @@ func callGRPC() {
 	// returns error
 	_, err = client.SayHello(context.Background(), &pb.HelloRequest{Name: "error"})
 	if err != nil {
-		log.Printf("SayHello error: %+v", err)
+		log.Printf("SayHello error: %v\n", err)
+	}
+	if errors.IsInvalidArgument(err) {
+		log.Printf("SayHello error is invalid argument: %v\n", err)
 	}
 }

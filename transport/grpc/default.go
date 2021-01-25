@@ -1,6 +1,10 @@
 package grpc
 
 import (
+	"context"
+	"fmt"
+	"runtime"
+
 	"github.com/go-kratos/kratos/v2/errors"
 	"github.com/golang/protobuf/proto"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
@@ -14,6 +18,7 @@ func DefaultErrorEncoder(err error) error {
 	if !ok {
 		se = &errors.StatusError{
 			Code:    2,
+			Reason:  "Unknown",
 			Message: "Unknown: " + err.Error(),
 		}
 	}
@@ -34,20 +39,24 @@ func DefaultErrorEncoder(err error) error {
 // DefaultErrorDecoder is default error decoder.
 func DefaultErrorDecoder(err error) error {
 	gs := status.Convert(err)
-	var (
-		reason  string
-		message string
-	)
 	for _, detail := range gs.Details() {
 		switch d := detail.(type) {
 		case *errdetails.ErrorInfo:
-			reason = d.Reason
-			message = d.Metadata["message"]
+			return &errors.StatusError{
+				Code:    int32(gs.Code()),
+				Reason:  d.Reason,
+				Message: d.Metadata["message"],
+			}
 		}
 	}
-	return &errors.StatusError{
-		Code:    int32(gs.Code()),
-		Reason:  reason,
-		Message: message,
-	}
+	return &errors.StatusError{Code: int32(gs.Code())}
+}
+
+// DefaultRecoveryHandler is default recovery handler.
+func DefaultRecoveryHandler(ctx context.Context, req, err interface{}) error {
+	buf := make([]byte, 65536)
+	n := runtime.Stack(buf, false)
+	buf = buf[:n]
+	fmt.Printf("panic: %v %v\nstack: %s\n", req, err, buf)
+	return errors.Unknown("Unknown", "panic triggered: %v", err)
 }

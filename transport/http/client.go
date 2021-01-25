@@ -17,6 +17,13 @@ type ClientOption func(*Client)
 // ClientDecodeErrorFunc is client error decoder.
 type ClientDecodeErrorFunc func(res *http.Response) error
 
+// ClientRecoveryHandler with server recovery handler.
+func ClientRecoveryHandler(h RecoveryHandlerFunc) ClientOption {
+	return func(c *Client) {
+		c.recoveryHandler = h
+	}
+}
+
 // ClientDialTimeout with client dial timeout.
 func ClientDialTimeout(timeout time.Duration) ClientOption {
 	return func(c *Client) {
@@ -54,21 +61,23 @@ func ClientErrorDecoder(d ClientDecodeErrorFunc) ClientOption {
 
 // Client is a HTTP transport client.
 type Client struct {
-	base         http.RoundTripper
-	dialTimeout  time.Duration
-	timeout      time.Duration
-	keepAlive    time.Duration
-	userAgent    string
-	errorDecoder ClientDecodeErrorFunc
+	base            http.RoundTripper
+	dialTimeout     time.Duration
+	timeout         time.Duration
+	keepAlive       time.Duration
+	userAgent       string
+	errorDecoder    ClientDecodeErrorFunc
+	recoveryHandler RecoveryHandlerFunc
 }
 
 // NewClient new a HTTP transport client.
 func NewClient(opts ...ClientOption) (*http.Client, error) {
 	client := &Client{
-		dialTimeout:  200 * time.Millisecond,
-		timeout:      500 * time.Millisecond,
-		keepAlive:    30 * time.Second,
-		errorDecoder: ClientDecodeError,
+		dialTimeout:     200 * time.Millisecond,
+		timeout:         500 * time.Millisecond,
+		keepAlive:       30 * time.Second,
+		errorDecoder:    CheckResponse,
+		recoveryHandler: DefaultRecoveryHandler,
 	}
 	for _, o := range opts {
 		o(client)
@@ -85,24 +94,29 @@ func NewClient(opts ...ClientOption) (*http.Client, error) {
 }
 
 // RoundTrip is transport round trip.
-func (c *Client) RoundTrip(req *http.Request) (*http.Response, error) {
+func (c *Client) RoundTrip(req *http.Request) (res *http.Response, err error) {
+	defer func() {
+		if rerr := recover(); rerr != nil {
+			err = c.recoveryHandler(req.Context(), req.Form, rerr)
+		}
+	}()
 	if c.userAgent != "" && req.Header.Get("User-Agent") == "" {
 		req.Header.Set("User-Agent", c.userAgent)
 	}
 	ctx, cancel := context.WithTimeout(req.Context(), c.timeout)
 	defer cancel()
-	res, err := c.base.RoundTrip(req.WithContext(ctx))
-	if err != nil {
+	if res, err = c.base.RoundTrip(req.WithContext(ctx)); err != nil {
 		return nil, err
 	}
-	if err := c.errorDecoder(res); err != nil {
+	if err = c.errorDecoder(res); err != nil {
 		return nil, err
 	}
-	return res, nil
+	return
 }
 
-// ClientDecodeError is default error decoder.
-func ClientDecodeError(res *http.Response) error {
+// CheckResponse returns an error (of type *Error) if the response
+// status code is not 2xx.
+func CheckResponse(res *http.Response) error {
 	if res.StatusCode >= 200 && res.StatusCode <= 299 {
 		return nil
 	}
@@ -114,17 +128,17 @@ func ClientDecodeError(res *http.Response) error {
 	contentType := res.Header.Get("content-type")
 	codec := encoding.GetCodec(contentSubtype(contentType))
 	if codec == nil {
-		return errors.Internal("UnknownCodec", contentType)
+		return errors.Unknown("Unknown", "unknown contentType: %s", contentType)
 	}
-	se := &errors.StatusError{}
+	se := &errors.StatusError{Code: int32(res.StatusCode)}
 	if err := codec.Unmarshal(slurp, se); err != nil {
 		return err
 	}
 	return se
 }
 
-// ClientDecodeBody decode response body.
-func ClientDecodeBody(res *http.Response, v interface{}) error {
+// DecodeResponse decodes the body of res into target. If there is no body, target is unchanged.
+func DecodeResponse(res *http.Response, v interface{}) error {
 	defer res.Body.Close()
 	data, err := ioutil.ReadAll(res.Body)
 	if err != nil {
@@ -133,7 +147,7 @@ func ClientDecodeBody(res *http.Response, v interface{}) error {
 	contentType := res.Header.Get("content-type")
 	codec := encoding.GetCodec(contentSubtype(contentType))
 	if codec == nil {
-		return errors.Internal("UnknownCodec", contentType)
+		return errors.Unknown("Unknown", "unknown contentType: %s", contentType)
 	}
 	return codec.Unmarshal(data, v)
 }

@@ -30,6 +30,9 @@ func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloRe
 	if in.Name == "error" {
 		return nil, errors.InvalidArgument("BadRequest", "invalid argument %s", in.Name)
 	}
+	if in.Name == "panic" {
+		panic("grpc panic")
+	}
 	return &pb.HelloReply{Message: fmt.Sprintf("Hello %+v", in)}, nil
 }
 

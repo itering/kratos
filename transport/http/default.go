@@ -1,8 +1,11 @@
 package http
 
 import (
+	"context"
+	"fmt"
 	"io/ioutil"
 	"net/http"
+	"runtime"
 
 	"github.com/go-kratos/kratos/v2/errors"
 )
@@ -55,4 +58,13 @@ func DefaultErrorEncoder(err error, res http.ResponseWriter, req *http.Request) 
 	res.Header().Set("content-type", contentType)
 	res.WriteHeader(code)
 	res.Write(data)
+}
+
+// DefaultRecoveryHandler is default recovery handler.
+func DefaultRecoveryHandler(ctx context.Context, req, err interface{}) error {
+	buf := make([]byte, 65536)
+	n := runtime.Stack(buf, false)
+	buf = buf[:n]
+	fmt.Printf("panic: %v %v\nstack: %s\n", req, err, buf)
+	return errors.Unknown("Unknown", "panic triggered: %v", err)
 }

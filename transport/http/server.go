@@ -35,15 +35,7 @@ type MethodDesc struct {
 }
 
 // ServerOption is HTTP server option.
-type ServerOption func(*serverOptions)
-
-// serverOptions is HTTP server options.
-type serverOptions struct {
-	requestDecoder  ServerDecodeRequestFunc
-	responseEncoder ServerEncodeResponseFunc
-	errorEncoder    ServerEncodeErrorFunc
-	middleware      middleware.Middleware
-}
+type ServerOption func(*Server)
 
 // ServerDecodeRequestFunc is decode request func.
 type ServerDecodeRequestFunc func(in interface{}, req *http.Request) error
@@ -54,61 +46,74 @@ type ServerEncodeResponseFunc func(out interface{}, res http.ResponseWriter, req
 // ServerEncodeErrorFunc is encode error func.
 type ServerEncodeErrorFunc func(err error, res http.ResponseWriter, req *http.Request)
 
+// RecoveryHandlerFunc is recovery handler func.
+type RecoveryHandlerFunc func(ctx context.Context, req, err interface{}) error
+
 // ServerRequestDecoder with decode request option.
 func ServerRequestDecoder(fn ServerEncodeErrorFunc) ServerOption {
-	return func(o *serverOptions) {
-		o.errorEncoder = fn
+	return func(s *Server) {
+		s.errorEncoder = fn
 	}
 }
 
 // ServerResponseEncoder with response handler option.
 func ServerResponseEncoder(fn ServerEncodeResponseFunc) ServerOption {
-	return func(o *serverOptions) {
-		o.responseEncoder = fn
+	return func(s *Server) {
+		s.responseEncoder = fn
 	}
 }
 
 // ServerErrorEncoder with error handler option.
 func ServerErrorEncoder(fn ServerEncodeErrorFunc) ServerOption {
-	return func(o *serverOptions) {
-		o.errorEncoder = fn
+	return func(s *Server) {
+		s.errorEncoder = fn
+	}
+}
+
+// ServerRecoveryHandler with recovery handler.
+func ServerRecoveryHandler(fn RecoveryHandlerFunc) ServerOption {
+	return func(s *Server) {
+		s.recoveryHandler = fn
 	}
 }
 
 // ServerMiddleware with server middleware option.
 func ServerMiddleware(m ...middleware.Middleware) ServerOption {
-	return func(o *serverOptions) {
-		o.middleware = middleware.Chain(m[0], m[1:]...)
+	return func(s *Server) {
+		s.globalMiddleware = middleware.Chain(m[0], m[1:]...)
 	}
 }
 
 // Server is a HTTP server wrapper.
 type Server struct {
-	router      *mux.Router
-	opts        serverOptions
-	middlewares map[interface{}]middleware.Middleware
+	router            *mux.Router
+	requestDecoder    ServerDecodeRequestFunc
+	responseEncoder   ServerEncodeResponseFunc
+	errorEncoder      ServerEncodeErrorFunc
+	recoveryHandler   RecoveryHandlerFunc
+	globalMiddleware  middleware.Middleware
+	serviceMiddleware map[interface{}]middleware.Middleware
 }
 
 // NewServer creates a HTTP server by options.
 func NewServer(opts ...ServerOption) *Server {
-	options := serverOptions{
-		requestDecoder:  DefaultRequestDecoder,
-		responseEncoder: DefaultResponseEncoder,
-		errorEncoder:    DefaultErrorEncoder,
+	srv := &Server{
+		router:            mux.NewRouter(),
+		requestDecoder:    DefaultRequestDecoder,
+		responseEncoder:   DefaultResponseEncoder,
+		errorEncoder:      DefaultErrorEncoder,
+		recoveryHandler:   DefaultRecoveryHandler,
+		serviceMiddleware: make(map[interface{}]middleware.Middleware),
 	}
 	for _, o := range opts {
-		o(&options)
+		o(srv)
 	}
-	return &Server{
-		opts:        options,
-		router:      mux.NewRouter(),
-		middlewares: make(map[interface{}]middleware.Middleware),
-	}
+	return srv
 }
 
 // Use use a middleware to the transport.
 func (s *Server) Use(srv interface{}, m ...middleware.Middleware) {
-	s.middlewares[srv] = middleware.Chain(m[0], m[1:]...)
+	s.serviceMiddleware[srv] = middleware.Chain(m[0], m[1:]...)
 }
 
 // Handle registers a new route with a matcher for the URL path.
@@ -141,21 +146,21 @@ func (s *Server) registerHandle(srv interface{}, md MethodDesc) {
 		handler := func(ctx context.Context, in interface{}) (interface{}, error) {
 			return md.Handler(srv, ctx, req)
 		}
-		if m, ok := s.middlewares[srv]; ok {
+		if m, ok := s.serviceMiddleware[srv]; ok {
 			handler = m(handler)
 		}
-		if s.opts.middleware != nil {
-			handler = s.opts.middleware(handler)
+		if s.globalMiddleware != nil {
+			handler = s.globalMiddleware(handler)
 		}
 
 		reply, err := handler(req.Context(), req)
 		if err != nil {
-			s.opts.errorEncoder(err, res, req)
+			s.errorEncoder(err, res, req)
 			return
 		}
 
-		if err := s.opts.responseEncoder(reply, res, req); err != nil {
-			s.opts.errorEncoder(err, res, req)
+		if err := s.responseEncoder(reply, res, req); err != nil {
+			s.errorEncoder(err, res, req)
 			return
 		}
 

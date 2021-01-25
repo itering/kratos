@@ -32,6 +32,7 @@ func StatusError(err error) (int, *errors.StatusError) {
 	if !ok {
 		se = &errors.StatusError{
 			Code:    2,
+			Reason:  "Unknown",
 			Message: "Unknown: " + err.Error(),
 		}
 	}
