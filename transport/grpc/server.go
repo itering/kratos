@@ -65,8 +65,8 @@ func (s *Server) Use(srv interface{}, m ...middleware.Middleware) {
 	s.serviceMiddleware[srv] = middleware.Chain(m[0], m[1:]...)
 }
 
-// Interceptor returns a unary server interceptor.
-func (s *Server) Interceptor() grpc.UnaryServerInterceptor {
+// UnaryInterceptor returns a unary server interceptor.
+func (s *Server) UnaryInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (reply interface{}, err error) {
 		defer func() {
 			if rerr := recover(); rerr != nil {

@@ -138,7 +138,11 @@ func CheckResponse(res *http.Response) error {
 	if codec == nil {
 		return errors.Unknown("Unknown", "unknown contentType: %s", contentType)
 	}
-	se := &errors.StatusError{Code: int32(res.StatusCode)}
+	code, ok := statusMapping[res.StatusCode]
+	if !ok {
+		code = 2
+	}
+	se := &errors.StatusError{Code: code}
 	if err := codec.Unmarshal(slurp, se); err != nil {
 		return err
 	}

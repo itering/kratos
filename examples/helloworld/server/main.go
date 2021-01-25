@@ -104,7 +104,7 @@ func main() {
 	grpcTrans.Use(s, logger3(logger))
 
 	httpServer := serverhttp.NewServer("tcp", ":8000", serverhttp.Handler(httpTrans))
-	grpcServer := servergrpc.NewServer("tcp", ":9000", grpc.UnaryInterceptor(grpcTrans.Interceptor()))
+	grpcServer := servergrpc.NewServer("tcp", ":9000", grpc.UnaryInterceptor(grpcTrans.UnaryInterceptor()))
 
 	pb.RegisterGreeterServer(grpcServer, s)
 	pb.RegisterGreeterHTTPServer(httpTrans, s)
