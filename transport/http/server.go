@@ -142,6 +142,12 @@ func (s *Server) RegisterService(sd *ServiceDesc, ss interface{}) {
 
 func (s *Server) registerHandle(srv interface{}, md MethodDesc) {
 	s.router.HandleFunc(md.Path, func(res http.ResponseWriter, req *http.Request) {
+		defer func() {
+			if rerr := recover(); rerr != nil {
+				err := s.recoveryHandler(req.Context(), req.Form, rerr)
+				s.errorEncoder(err, res, req)
+			}
+		}()
 
 		handler := func(ctx context.Context, in interface{}) (interface{}, error) {
 			return md.Handler(srv, ctx, req)
