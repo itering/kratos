@@ -2,13 +2,10 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"os"
 
 	"github.com/go-kratos/kratos/v2"
-	"github.com/go-kratos/kratos/v2/config"
-	"github.com/go-kratos/kratos/v2/config/source/file"
 	"github.com/go-kratos/kratos/v2/errors"
 	pb "github.com/go-kratos/kratos/v2/examples/helloworld/helloworld"
 	"github.com/go-kratos/kratos/v2/log"
@@ -88,21 +85,7 @@ func logger3(logger log.Logger) middleware.Middleware {
 	}
 }
 
-var flagconf string
-
-func init() {
-	flag.StringVar(&flagconf, "conf", "../configs", "config path, eg: -conf ../configs")
-}
-
 func main() {
-	flag.Parse()
-	conf := config.New(config.WithSource(
-		file.NewSource(flagconf),
-	))
-	if err := conf.Load(); err != nil {
-		panic(err)
-	}
-
 	logger, err := stdlog.NewLogger(stdlog.Writer(os.Stdout))
 	if err != nil {
 		panic(err)
