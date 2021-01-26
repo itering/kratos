@@ -2,16 +2,12 @@ package registry
 
 import "context"
 
-// Registrar is service registrar interface.
-type Registrar interface {
+// Registry is service registry.
+type Registry interface {
 	// Register the registration.
-	Register(ctx context.Context, svc *Service) error
+	Register(service *Service) error
 	// Deregister the registration.
-	Deregister(ctx context.Context, svc *Service) error
-}
-
-// Discovery is service discovery interface.
-type Discovery interface {
+	Deregister(service *Service) error
 	// GetService return the service instances in memory according to the service name.
 	GetService(name string) ([]*Service, error)
 	// GetService return all service instances in memory which aggregated according to service name.
