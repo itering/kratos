@@ -24,7 +24,7 @@ type Watcher interface {
 	// if the above two conditions are not met, it will block until context deadline exceeded or canceled
 	Watch(ctx context.Context) ([]*Service, error)
 	// Close close the watcher.
-	Close()
+	Close() error
 }
 
 // Service is an instance of a service in a discovery system.
