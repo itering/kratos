@@ -64,12 +64,12 @@ type Server struct {
 	*http.Server
 
 	network string
-	addr    string
+	address string
 	opts    options
 }
 
 // NewServer creates a HTTP server by options.
-func NewServer(network, addr string, opts ...Option) *Server {
+func NewServer(network, address string, opts ...Option) *Server {
 	options := options{
 		readTimeout:  time.Second,
 		writeTimeout: time.Second,
@@ -80,7 +80,7 @@ func NewServer(network, addr string, opts ...Option) *Server {
 	}
 	return &Server{
 		network: network,
-		addr:    addr,
+		address: address,
 		opts:    options,
 		Server: &http.Server{
 			Handler:      options.handler,
@@ -94,7 +94,7 @@ func NewServer(network, addr string, opts ...Option) *Server {
 
 // Start start the HTTP server.
 func (s *Server) Start(ctx context.Context) error {
-	lis, err := net.Listen(s.network, s.addr)
+	lis, err := net.Listen(s.network, s.address)
 	if err != nil {
 		return err
 	}

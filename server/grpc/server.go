@@ -15,21 +15,21 @@ type Server struct {
 	*grpc.Server
 
 	network string
-	addr    string
+	address string
 }
 
 // NewServer creates a gRPC server by options.
-func NewServer(network, addr string, opts ...grpc.ServerOption) *Server {
+func NewServer(network, address string, opts ...grpc.ServerOption) *Server {
 	return &Server{
 		network: network,
-		addr:    addr,
+		address: address,
 		Server:  grpc.NewServer(opts...),
 	}
 }
 
 // Start start the gRPC server.
 func (s *Server) Start(ctx context.Context) error {
-	lis, err := net.Listen(s.network, s.addr)
+	lis, err := net.Listen(s.network, s.address)
 	if err != nil {
 		return err
 	}

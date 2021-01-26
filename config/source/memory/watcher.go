@@ -10,8 +10,8 @@ func newWatcher(ch chan *source.KeyValue) source.Watcher {
 	return &watcher{ch: ch}
 }
 
-func (w *watcher) Next() (*source.KeyValue, error) {
-	return <-w.ch, nil
+func (w *watcher) Next() ([]*source.KeyValue, error) {
+	return []*source.KeyValue{<-w.ch}, nil
 }
 
 func (w *watcher) Close() error {

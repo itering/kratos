@@ -22,7 +22,7 @@ func newWatcher(f *file) (source.Watcher, error) {
 	return &watcher{f: f, fw: fw}, nil
 }
 
-func (w *watcher) Next() (*source.KeyValue, error) {
+func (w *watcher) Next() ([]*source.KeyValue, error) {
 	select {
 	case event := <-w.fw.Events:
 		if event.Op == fsnotify.Rename {
@@ -31,7 +31,11 @@ func (w *watcher) Next() (*source.KeyValue, error) {
 				w.fw.Add(event.Name)
 			}
 		}
-		return w.f.loadFile(filepath.Join(w.f.path, event.Name))
+		kv, err := w.f.loadFile(filepath.Join(w.f.path, event.Name))
+		if err != nil {
+			return nil, err
+		}
+		return []*source.KeyValue{kv}, nil
 	case err := <-w.fw.Errors:
 		return nil, err
 	}

@@ -47,25 +47,27 @@ func New(opts ...Option) Config {
 
 func (c *config) watch(r *resolver, w source.Watcher) {
 	for {
-		kv, err := w.Next()
+		kvs, err := w.Next()
 		if err != nil {
 			time.Sleep(time.Second)
 			continue
 		}
-		r.reload(kv)
-		c.cached.Range(func(key, value interface{}) bool {
-			k := key.(string)
-			v := value.(Value)
-			for _, r := range c.resolvers {
-				if n := r.Resolve(k); n != nil && n.Load() != v.Load() {
-					v.Store(n.Load())
-					if o, ok := c.observers.Load(k); ok {
-						o.(Observer)(k, v)
+		for _, kv := range kvs {
+			r.reload(kv)
+			c.cached.Range(func(key, value interface{}) bool {
+				k := key.(string)
+				v := value.(Value)
+				for _, r := range c.resolvers {
+					if n := r.Resolve(k); n != nil && n.Load() != v.Load() {
+						v.Store(n.Load())
+						if o, ok := c.observers.Load(k); ok {
+							o.(Observer)(k, v)
+						}
 					}
 				}
-			}
-			return true
-		})
+				return true
+			})
+		}
 	}
 }
 
