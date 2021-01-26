@@ -4,21 +4,11 @@ import (
 	"flag"
 	"log"
 
+	grpcconf "github.com/go-kratos/kratos/v2/api/kratos/config/grpc"
+	httpconf "github.com/go-kratos/kratos/v2/api/kratos/config/http"
 	"github.com/go-kratos/kratos/v2/config"
 	"github.com/go-kratos/kratos/v2/config/source/file"
 )
-
-// Service is service config.
-type Service struct {
-	Name    string `json:"name"`
-	Version string `json:"version"`
-}
-
-// Server is server config.
-type Server struct {
-	Network string `json:"network"`
-	Address string `json:"address"`
-}
 
 var flagconf string
 
@@ -36,13 +26,9 @@ func main() {
 	}
 
 	var (
-		sc Service
-		hc Server
-		gc Server
+		hc httpconf.ServerConfig
+		gc grpcconf.ServerConfig
 	)
-	if err := conf.Value("service").Scan(&sc); err != nil {
-		panic(err)
-	}
 	if err := conf.Value("server.http").Scan(&hc); err != nil {
 		panic(err)
 	}
@@ -50,7 +36,9 @@ func main() {
 		panic(err)
 	}
 
-	log.Printf("service: %+v\n", sc)
-	log.Printf("http: %+v\n", hc)
-	log.Printf("grpc: %+v\n", gc)
+	// srvhttp.Apply(hc)
+	// srvgrpc.Apply(hc)
+
+	log.Printf("http: %s\n", hc.String())
+	log.Printf("grpc: %s\n", gc.String())
 }

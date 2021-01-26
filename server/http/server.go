@@ -2,11 +2,11 @@ package http
 
 import (
 	"context"
-	"crypto/tls"
 	"net"
 	"net/http"
 	"time"
 
+	pb "github.com/go-kratos/kratos/v2/api/kratos/config/http"
 	"github.com/go-kratos/kratos/v2/server"
 )
 
@@ -15,13 +15,11 @@ var _ server.Server = (*Server)(nil)
 // Option is HTTP server option.
 type Option func(o *options)
 
-// options is HTTP server options.
 type options struct {
-	handler      http.Handler
-	tlsConfig    *tls.Config
-	readTimeout  time.Duration
-	writeTimeout time.Duration
-	idleTimeout  time.Duration
+	handler http.Handler
+	network string
+	address string
+	timeout time.Duration
 }
 
 // Handler with server handler.
@@ -31,70 +29,67 @@ func Handler(h http.Handler) Option {
 	}
 }
 
-// TLSConfig with server tls config.
-func TLSConfig(c *tls.Config) Option {
+// Network with server network.
+func Network(network string) Option {
 	return func(o *options) {
-		o.tlsConfig = c
+		o.network = network
 	}
 }
 
-// ReadTimeout with read timeout.
-func ReadTimeout(timeout time.Duration) Option {
+// Address with server address.
+func Address(addr string) Option {
 	return func(o *options) {
-		o.readTimeout = timeout
+		o.address = addr
 	}
 }
 
-// WriteTimeout with write timeout.
-func WriteTimeout(timeout time.Duration) Option {
+// Timeout with timeout.
+func Timeout(timeout time.Duration) Option {
 	return func(o *options) {
-		o.writeTimeout = timeout
+		o.timeout = timeout
 	}
 }
 
-// IdleTimeout with read timeout.
-func IdleTimeout(timeout time.Duration) Option {
+// Apply apply config.
+func Apply(c *pb.ServerConfig) Option {
 	return func(o *options) {
-		o.idleTimeout = timeout
+		o.network = c.Network
+		o.address = c.Address
+		if c.Timeout != nil {
+			o.timeout = c.Timeout.AsDuration()
+		}
 	}
 }
 
 // Server is a HTTP server wrapper.
 type Server struct {
 	*http.Server
-
-	network string
-	address string
-	opts    options
+	opts options
 }
 
 // NewServer creates a HTTP server by options.
-func NewServer(network, address string, opts ...Option) *Server {
+func NewServer(opts ...Option) *Server {
 	options := options{
-		readTimeout:  time.Second,
-		writeTimeout: time.Second,
-		idleTimeout:  time.Minute,
+		network: "tcp",
+		address: ":8000",
+		timeout: time.Second,
 	}
 	for _, o := range opts {
 		o(&options)
 	}
 	return &Server{
-		network: network,
-		address: address,
-		opts:    options,
+		opts: options,
 		Server: &http.Server{
 			Handler:      options.handler,
-			TLSConfig:    options.tlsConfig,
-			ReadTimeout:  options.readTimeout,
-			WriteTimeout: options.writeTimeout,
-			IdleTimeout:  options.idleTimeout,
+			ReadTimeout:  options.timeout,
+			WriteTimeout: options.timeout,
 		},
 	}
 }
 
 // Start start the HTTP server.
 func (s *Server) Start(ctx context.Context) error {
-	lis, err := net.Listen(s.network, s.address)
+	lis, err := net.Listen(s.opts.network, s.opts.address)
 	if err != nil {
 		return err
 	}

@@ -11,13 +11,11 @@ import (
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/log/stdlog"
 	"github.com/go-kratos/kratos/v2/middleware"
-	servergrpc "github.com/go-kratos/kratos/v2/server/grpc"
-	serverhttp "github.com/go-kratos/kratos/v2/server/http"
+	srvgrpc "github.com/go-kratos/kratos/v2/server/grpc"
+	srvhttp "github.com/go-kratos/kratos/v2/server/http"
 	"github.com/go-kratos/kratos/v2/transport"
 	transgrpc "github.com/go-kratos/kratos/v2/transport/grpc"
 	transhttp "github.com/go-kratos/kratos/v2/transport/http"
-
-	"google.golang.org/grpc"
 )
 
 // server is used to implement helloworld.GreeterServer.
@@ -103,8 +101,8 @@ func main() {
 	grpcTrans := transgrpc.NewServer(transgrpc.ServerMiddleware(logger1(logger), logger2(logger)))
 	grpcTrans.Use(s, logger3(logger))
 
-	httpServer := serverhttp.NewServer("tcp", ":8000", serverhttp.Handler(httpTrans))
-	grpcServer := servergrpc.NewServer("tcp", ":9000", grpc.UnaryInterceptor(grpcTrans.UnaryInterceptor()))
+	httpServer := srvhttp.NewServer(srvhttp.Address(":8000"), srvhttp.Handler(httpTrans))
+	grpcServer := srvgrpc.NewServer(srvgrpc.Address(":9000"), srvgrpc.UnaryInterceptor(grpcTrans.UnaryInterceptor()))
 
 	pb.RegisterGreeterServer(grpcServer, s)
 	pb.RegisterGreeterHTTPServer(httpTrans, s)

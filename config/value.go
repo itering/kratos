@@ -7,6 +7,9 @@ import (
 	"strconv"
 	"sync/atomic"
 	"time"
+
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 var (
@@ -81,6 +84,9 @@ func (v *atomicValue) Scan(obj interface{}) error {
 	data, err := json.Marshal(v.Load())
 	if err != nil {
 		return err
+	}
+	if pb, ok := obj.(proto.Message); ok {
+		return protojson.Unmarshal(data, pb)
 	}
 	return json.Unmarshal(data, obj)
 }

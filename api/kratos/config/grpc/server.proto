@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package kratos.config.grpc;
+
+import "google/protobuf/duration.proto";
+
+option go_package = "github.com/go-kratos/kratos/v2/api/kratos/config/grpc;grpc";
+
+message ServerConfig {
+  string network = 1;
+  string address = 2;
+  google.protobuf.Duration timeout = 3;
+}
