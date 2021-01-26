@@ -1,7 +1,5 @@
 package registry
 
-import "context"
-
 // Registry is service registry.
 type Registry interface {
 	// Register the registration.
@@ -10,10 +8,8 @@ type Registry interface {
 	Deregister(service *Service) error
 	// GetService return the service instances in memory according to the service name.
 	GetService(name string) ([]*Service, error)
-	// GetService return all service instances in memory which aggregated according to service name.
-	ListService() (map[string][]*Service, error)
-	// Resolve creates a watcher according to the service name.
-	Resolve(name string) (Watcher, error)
+	// Watch creates a watcher according to the service name.
+	Watch(name string) (Watcher, error)
 }
 
 // Watcher is service watcher.
@@ -22,7 +18,7 @@ type Watcher interface {
 	// 1.the first time to watch and the service instance list is not empty.
 	// 2.any service instance changes found.
 	// if the above two conditions are not met, it will block until context deadline exceeded or canceled
-	Watch(ctx context.Context) ([]*Service, error)
+	Next() ([]*Service, error)
 	// Close close the watcher.
 	Close() error
 }
