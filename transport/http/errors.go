@@ -3,7 +3,7 @@ package http
 import (
 	"net/http"
 
-	"github.com/go-kratos/kratos/v2/errors"
+	"google.golang.org/grpc/status"
 )
 
 var (
@@ -43,17 +43,10 @@ var (
 )
 
 // StatusError converts error to http error.
-func StatusError(err error) (int, *errors.StatusError) {
-	se, ok := err.(*errors.StatusError)
-	if !ok {
-		se = &errors.StatusError{
-			Code:    2,
-			Reason:  "Unknown",
-			Message: "Unknown: " + err.Error(),
-		}
-	}
-	if status, ok := codesMapping[se.Code]; ok {
-		return status, se
+func StatusError(err error) (int, *status.Status) {
+	se, _ := status.FromError(err)
+	if code, ok := codesMapping[int32(se.Code())]; ok {
+		return code, se
 	}
 	return http.StatusInternalServerError, se
 }

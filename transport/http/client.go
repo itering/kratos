@@ -73,11 +73,10 @@ type Client struct {
 // NewClient new a HTTP transport client.
 func NewClient(opts ...ClientOption) (*http.Client, error) {
 	client := &Client{
-		timeout:         500 * time.Millisecond,
-		keepAlive:       30 * time.Second,
-		maxIdleConns:    100,
-		errorDecoder:    CheckResponse,
-		recoveryHandler: DefaultRecoveryHandler,
+		timeout:      500 * time.Millisecond,
+		keepAlive:    30 * time.Second,
+		maxIdleConns: 100,
+		errorDecoder: CheckResponse,
 	}
 	for _, o := range opts {
 		o(client)

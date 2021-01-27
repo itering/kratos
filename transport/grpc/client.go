@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/go-kratos/kratos/v2/middleware"
 	"google.golang.org/grpc"
 )
 
@@ -12,27 +13,6 @@ type ClientOption func(o *Client)
 
 // ClientDecodeErrorFunc is encode error func.
 type ClientDecodeErrorFunc func(err error) error
-
-// ClientErrorDecoder with client error decoder.
-func ClientErrorDecoder(d ClientDecodeErrorFunc) ClientOption {
-	return func(c *Client) {
-		c.errorDecoder = d
-	}
-}
-
-// ClientRecoveryHandler with recovery handler.
-func ClientRecoveryHandler(h RecoveryHandlerFunc) ClientOption {
-	return func(c *Client) {
-		c.recoveryHandler = h
-	}
-}
-
-// ClientUnaryInterceptor with client unary interceptor.
-func ClientUnaryInterceptor(in grpc.UnaryClientInterceptor) ClientOption {
-	return func(c *Client) {
-		c.in = in
-	}
-}
 
 // ClientContext with client context.
 func ClientContext(ctx context.Context) ClientOption {
@@ -57,30 +37,26 @@ func ClientInsecure() ClientOption {
 
 // Client is grpc transport client.
 type Client struct {
-	ctx             context.Context
-	insecure        bool
-	block           bool
-	timeout         time.Duration
-	in              grpc.UnaryClientInterceptor
-	errorDecoder    ClientDecodeErrorFunc
-	recoveryHandler RecoveryHandlerFunc
+	ctx        context.Context
+	insecure   bool
+	block      bool
+	timeout    time.Duration
+	middleware middleware.Middleware
 }
 
 // NewClient new a grpc transport client.
 func NewClient(target string, opts ...ClientOption) (*grpc.ClientConn, error) {
 	client := &Client{
-		ctx:             context.Background(),
-		timeout:         500 * time.Millisecond,
-		insecure:        false,
-		errorDecoder:    DefaultErrorDecoder,
-		recoveryHandler: DefaultRecoveryHandler,
+		ctx:      context.Background(),
+		timeout:  500 * time.Millisecond,
+		insecure: false,
 	}
 	for _, o := range opts {
 		o(client)
 	}
 	var grpcOpts = []grpc.DialOption{
 		grpc.WithTimeout(client.timeout),
-		grpc.WithChainUnaryInterceptor(client.unaryInterceptor(), client.in),
+		grpc.WithChainUnaryInterceptor(client.unaryInterceptor()),
 	}
 	if client.insecure {
 		grpcOpts = append(grpcOpts, grpc.WithInsecure())
@@ -90,13 +66,8 @@ func NewClient(target string, opts ...ClientOption) (*grpc.ClientConn, error) {
 
 func (c *Client) unaryInterceptor() grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) (err error) {
-		defer func() {
-			if rerr := recover(); rerr != nil {
-				err = c.recoveryHandler(ctx, req, rerr)
-			}
-		}()
 		if err := invoker(ctx, method, req, reply, cc, opts...); err != nil {
-			return c.errorDecoder(err)
+			return err
 		}
 		return nil
 	}

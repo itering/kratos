@@ -11,6 +11,8 @@ import (
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/log/stdlog"
 	"github.com/go-kratos/kratos/v2/middleware"
+	"github.com/go-kratos/kratos/v2/middleware/recovery"
+	"github.com/go-kratos/kratos/v2/middleware/status"
 	srvgrpc "github.com/go-kratos/kratos/v2/server/grpc"
 	srvhttp "github.com/go-kratos/kratos/v2/server/http"
 	"github.com/go-kratos/kratos/v2/transport"
@@ -34,33 +36,7 @@ func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloRe
 	return &pb.HelloReply{Message: fmt.Sprintf("Hello %+v", in)}, nil
 }
 
-func logger1(logger log.Logger) middleware.Middleware {
-	log := log.NewHelper("logger1", logger)
-	return func(handler middleware.Handler) middleware.Handler {
-		return func(ctx context.Context, req interface{}) (interface{}, error) {
-
-			log.Info("before")
-
-			return handler(ctx, req)
-		}
-	}
-}
-
-func logger2(logger log.Logger) middleware.Middleware {
-	log := log.NewHelper("logger2", logger)
-	return func(handler middleware.Handler) middleware.Handler {
-		return func(ctx context.Context, req interface{}) (interface{}, error) {
-
-			resp, err := handler(ctx, req)
-
-			log.Info("after")
-
-			return resp, err
-		}
-	}
-}
-
-func logger3(logger log.Logger) middleware.Middleware {
+func loggerInfo(logger log.Logger) middleware.Middleware {
 	log := log.NewHelper("logger2", logger)
 	return func(handler middleware.Handler) middleware.Handler {
 		return func(ctx context.Context, req interface{}) (interface{}, error) {
@@ -96,14 +72,20 @@ func main() {
 	app := kratos.New()
 
 	httpTrans := transhttp.NewServer(transhttp.ServerMiddleware(
-		middleware.Chain(logger1(logger), logger2(logger))),
-	)
+		middleware.Chain(
+			status.Server(),
+			recovery.Recovery(),
+		),
+	))
 	grpcTrans := transgrpc.NewServer(transgrpc.ServerMiddleware(
-		middleware.Chain(logger1(logger), logger2(logger))),
-	)
+		middleware.Chain(
+			status.Server(),
+			recovery.Recovery(),
+		),
+	))
 
-	httpTrans.Use(s, logger3(logger))
-	grpcTrans.Use(s, logger3(logger))
+	httpTrans.Use(s, loggerInfo(logger))
+	grpcTrans.Use(s, loggerInfo(logger))
 
 	httpServer := srvhttp.NewServer(srvhttp.Address(":8000"), srvhttp.Transport(httpTrans))
 	grpcServer := srvgrpc.NewServer(srvgrpc.Address(":9000"), srvgrpc.Transport(grpcTrans))

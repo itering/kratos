@@ -70,13 +70,6 @@ func ServerErrorEncoder(fn ServerEncodeErrorFunc) ServerOption {
 	}
 }
 
-// ServerRecoveryHandler with recovery handler.
-func ServerRecoveryHandler(fn RecoveryHandlerFunc) ServerOption {
-	return func(s *Server) {
-		s.recoveryHandler = fn
-	}
-}
-
 // ServerMiddleware with server middleware option.
 func ServerMiddleware(m middleware.Middleware) ServerOption {
 	return func(s *Server) {
@@ -90,7 +83,6 @@ type Server struct {
 	requestDecoder    ServerDecodeRequestFunc
 	responseEncoder   ServerEncodeResponseFunc
 	errorEncoder      ServerEncodeErrorFunc
-	recoveryHandler   RecoveryHandlerFunc
 	globalMiddleware  middleware.Middleware
 	serviceMiddleware map[interface{}]middleware.Middleware
 }
@@ -102,7 +94,6 @@ func NewServer(opts ...ServerOption) *Server {
 		requestDecoder:    DefaultRequestDecoder,
 		responseEncoder:   DefaultResponseEncoder,
 		errorEncoder:      DefaultErrorEncoder,
-		recoveryHandler:   DefaultRecoveryHandler,
 		serviceMiddleware: make(map[interface{}]middleware.Middleware),
 	}
 	for _, o := range opts {
@@ -142,13 +133,6 @@ func (s *Server) RegisterService(sd *ServiceDesc, ss interface{}) {
 
 func (s *Server) registerHandle(srv interface{}, md MethodDesc) {
 	s.router.HandleFunc(md.Path, func(res http.ResponseWriter, req *http.Request) {
-		defer func() {
-			if rerr := recover(); rerr != nil {
-				err := s.recoveryHandler(req.Context(), req.Form, rerr)
-				s.errorEncoder(err, res, req)
-			}
-		}()
-
 		handler := func(ctx context.Context, in interface{}) (interface{}, error) {
 			return md.Handler(srv, ctx, req)
 		}

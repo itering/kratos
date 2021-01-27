@@ -1,10 +1,6 @@
 package grpc
 
 import (
-	"context"
-	"fmt"
-	"runtime"
-
 	"github.com/go-kratos/kratos/v2/errors"
 	"github.com/golang/protobuf/proto"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
@@ -50,13 +46,4 @@ func DefaultErrorDecoder(err error) error {
 		}
 	}
 	return &errors.StatusError{Code: int32(gs.Code())}
-}
-
-// DefaultRecoveryHandler is default recovery handler.
-func DefaultRecoveryHandler(ctx context.Context, req, err interface{}) error {
-	buf := make([]byte, 64<<10)
-	n := runtime.Stack(buf, false)
-	buf = buf[:n]
-	fmt.Printf("panic: %v %v\nstack: %s\n", req, err, buf)
-	return errors.Unknown("Unknown", "panic triggered: %v", err)
 }
