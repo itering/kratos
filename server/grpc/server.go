@@ -79,7 +79,7 @@ func NewServer(opts ...Option) *Server {
 	}
 	return &Server{
 		opts:   options,
-		Server: grpc.NewServer(),
+		Server: grpc.NewServer(grpc.UnaryInterceptor(options.unaryInt)),
 	}
 }
 
