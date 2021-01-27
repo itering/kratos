@@ -78,9 +78,9 @@ func ServerRecoveryHandler(fn RecoveryHandlerFunc) ServerOption {
 }
 
 // ServerMiddleware with server middleware option.
-func ServerMiddleware(m ...middleware.Middleware) ServerOption {
+func ServerMiddleware(m middleware.Middleware) ServerOption {
 	return func(s *Server) {
-		s.globalMiddleware = middleware.Chain(m[0], m[1:]...)
+		s.globalMiddleware = m
 	}
 }
 
@@ -112,8 +112,8 @@ func NewServer(opts ...ServerOption) *Server {
 }
 
 // Use use a middleware to the transport.
-func (s *Server) Use(srv interface{}, m ...middleware.Middleware) {
-	s.serviceMiddleware[srv] = middleware.Chain(m[0], m[1:]...)
+func (s *Server) Use(srv interface{}, m middleware.Middleware) {
+	s.serviceMiddleware[srv] = m
 }
 
 // Handle registers a new route with a matcher for the URL path.
@@ -158,7 +158,6 @@ func (s *Server) registerHandle(srv interface{}, md MethodDesc) {
 		if s.globalMiddleware != nil {
 			handler = s.globalMiddleware(handler)
 		}
-
 		reply, err := handler(req.Context(), req)
 		if err != nil {
 			s.errorEncoder(err, res, req)

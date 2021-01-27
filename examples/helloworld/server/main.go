@@ -95,14 +95,18 @@ func main() {
 	s := &server{}
 	app := kratos.New()
 
-	httpTrans := transhttp.NewServer(transhttp.ServerMiddleware(logger1(logger), logger2(logger)))
-	httpTrans.Use(s, logger3(logger))
+	httpTrans := transhttp.NewServer(transhttp.ServerMiddleware(
+		middleware.Chain(logger1(logger), logger2(logger))),
+	)
+	grpcTrans := transgrpc.NewServer(transgrpc.ServerMiddleware(
+		middleware.Chain(logger1(logger), logger2(logger))),
+	)
 
-	grpcTrans := transgrpc.NewServer(transgrpc.ServerMiddleware(logger1(logger), logger2(logger)))
+	httpTrans.Use(s, logger3(logger))
 	grpcTrans.Use(s, logger3(logger))
 
-	httpServer := srvhttp.NewServer(srvhttp.Address(":8000"), srvhttp.Handler(httpTrans))
-	grpcServer := srvgrpc.NewServer(srvgrpc.Address(":9000"), srvgrpc.UnaryInterceptor(grpcTrans.UnaryInterceptor()))
+	httpServer := srvhttp.NewServer(srvhttp.Address(":8000"), srvhttp.Transport(httpTrans))
+	grpcServer := srvgrpc.NewServer(srvgrpc.Address(":9000"), srvgrpc.Transport(grpcTrans))
 
 	pb.RegisterGreeterServer(grpcServer, s)
 	pb.RegisterGreeterHTTPServer(httpTrans, s)

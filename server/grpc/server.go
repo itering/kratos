@@ -7,6 +7,7 @@ import (
 
 	pb "github.com/go-kratos/kratos/v2/api/kratos/config/grpc"
 	"github.com/go-kratos/kratos/v2/server"
+	transgrpc "github.com/go-kratos/kratos/v2/transport/grpc"
 	"google.golang.org/grpc"
 )
 
@@ -16,10 +17,10 @@ var _ server.Server = (*Server)(nil)
 type Option func(*options)
 
 type options struct {
-	network  string
-	address  string
-	timeout  time.Duration
-	unaryInt grpc.UnaryServerInterceptor
+	network   string
+	address   string
+	timeout   time.Duration
+	transport *transgrpc.Server
 }
 
 // Network with server network.
@@ -43,10 +44,10 @@ func Timeout(timeout time.Duration) Option {
 	}
 }
 
-// UnaryInterceptor with grpc unary interceptor.
-func UnaryInterceptor(in grpc.UnaryServerInterceptor) Option {
+// Transport with grpc unary interceptor.
+func Transport(trans *transgrpc.Server) Option {
 	return func(o *options) {
-		o.unaryInt = in
+		o.transport = trans
 	}
 }
 
@@ -78,8 +79,10 @@ func NewServer(opts ...Option) *Server {
 		o(&options)
 	}
 	return &Server{
-		opts:   options,
-		Server: grpc.NewServer(grpc.UnaryInterceptor(options.unaryInt)),
+		opts: options,
+		Server: grpc.NewServer(grpc.UnaryInterceptor(
+			options.transport.UnaryInterceptor(),
+		)),
 	}
 }
 

@@ -19,9 +19,9 @@ type ServerEncodeErrorFunc func(err error) error
 type RecoveryHandlerFunc func(ctx context.Context, req, err interface{}) error
 
 // ServerMiddleware with server middleware.
-func ServerMiddleware(m ...middleware.Middleware) ServerOption {
+func ServerMiddleware(m middleware.Middleware) ServerOption {
 	return func(o *Server) {
-		o.globalMiddleware = middleware.Chain(m[0], m[1:]...)
+		o.globalMiddleware = m
 	}
 }
 
@@ -61,8 +61,8 @@ func NewServer(opts ...ServerOption) *Server {
 }
 
 // Use use a middleware to the transport.
-func (s *Server) Use(srv interface{}, m ...middleware.Middleware) {
-	s.serviceMiddleware[srv] = middleware.Chain(m[0], m[1:]...)
+func (s *Server) Use(srv interface{}, m middleware.Middleware) {
+	s.serviceMiddleware[srv] = m
 }
 
 // UnaryInterceptor returns a unary server interceptor.

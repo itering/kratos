@@ -28,9 +28,9 @@ func ClientRecoveryHandler(h RecoveryHandlerFunc) ClientOption {
 }
 
 // ClientUnaryInterceptor with client unary interceptor.
-func ClientUnaryInterceptor(ints ...grpc.UnaryClientInterceptor) ClientOption {
+func ClientUnaryInterceptor(in grpc.UnaryClientInterceptor) ClientOption {
 	return func(c *Client) {
-		c.ints = ints
+		c.in = in
 	}
 }
 
@@ -61,7 +61,7 @@ type Client struct {
 	insecure        bool
 	block           bool
 	timeout         time.Duration
-	ints            []grpc.UnaryClientInterceptor
+	in              grpc.UnaryClientInterceptor
 	errorDecoder    ClientDecodeErrorFunc
 	recoveryHandler RecoveryHandlerFunc
 }
@@ -70,8 +70,8 @@ type Client struct {
 func NewClient(target string, opts ...ClientOption) (*grpc.ClientConn, error) {
 	client := &Client{
 		ctx:             context.Background(),
-		insecure:        false,
 		timeout:         500 * time.Millisecond,
+		insecure:        false,
 		errorDecoder:    DefaultErrorDecoder,
 		recoveryHandler: DefaultRecoveryHandler,
 	}
@@ -81,7 +81,7 @@ func NewClient(target string, opts ...ClientOption) (*grpc.ClientConn, error) {
 	var grpcOpts = []grpc.DialOption{
 		grpc.WithTimeout(client.timeout),
 		grpc.WithUnaryInterceptor(
-			client.chainUnaryInterceptor(),
+			ChainUnaryClient(client.unaryInterceptor(), client.in),
 		),
 	}
 	if client.insecure {
@@ -101,22 +101,5 @@ func (c *Client) unaryInterceptor() grpc.UnaryClientInterceptor {
 			return c.errorDecoder(err)
 		}
 		return nil
-	}
-}
-
-func (c *Client) chainUnaryInterceptor() grpc.UnaryClientInterceptor {
-	ints := []grpc.UnaryClientInterceptor{c.unaryInterceptor()}
-	ints = append(ints, c.ints...)
-	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-		chain := func(in grpc.UnaryClientInterceptor, invoker grpc.UnaryInvoker) grpc.UnaryInvoker {
-			return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, opts ...grpc.CallOption) error {
-				return in(ctx, method, req, reply, cc, invoker, opts...)
-			}
-		}
-		next := invoker
-		for i := len(ints) - 1; i >= 0; i-- {
-			next = chain(ints[i], next)
-		}
-		return next(ctx, method, req, reply, cc, opts...)
 	}
 }
