@@ -71,14 +71,14 @@ func main() {
 
 	httpTrans := transhttp.NewServer(transhttp.ServerMiddleware(
 		middleware.Chain(
-			logging.Server(logger),
+			logging.HTTPServer(logger),
 			status.Server(),
 			recovery.Recovery(),
 		),
 	))
 	grpcTrans := transgrpc.NewServer(transgrpc.ServerMiddleware(
 		middleware.Chain(
-			logging.Server(logger),
+			logging.GRPCServer(logger),
 			status.Server(),
 			recovery.Recovery(),
 		),
