@@ -54,7 +54,7 @@ func DefaultErrorDecoder(err error) error {
 
 // DefaultRecoveryHandler is default recovery handler.
 func DefaultRecoveryHandler(ctx context.Context, req, err interface{}) error {
-	buf := make([]byte, 65536)
+	buf := make([]byte, 64<<10)
 	n := runtime.Stack(buf, false)
 	buf = buf[:n]
 	fmt.Printf("panic: %v %v\nstack: %s\n", req, err, buf)

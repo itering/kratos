@@ -3,7 +3,6 @@ package grpc
 import (
 	"context"
 	"net"
-	"time"
 
 	pb "github.com/go-kratos/kratos/v2/api/kratos/config/grpc"
 	"github.com/go-kratos/kratos/v2/server"
@@ -19,7 +18,6 @@ type Option func(*options)
 type options struct {
 	network   string
 	address   string
-	timeout   time.Duration
 	transport *transgrpc.Server
 }
 
@@ -37,13 +35,6 @@ func Address(addr string) Option {
 	}
 }
 
-// Timeout with server timeout.
-func Timeout(timeout time.Duration) Option {
-	return func(o *options) {
-		o.timeout = timeout
-	}
-}
-
 // Transport with grpc unary interceptor.
 func Transport(trans *transgrpc.Server) Option {
 	return func(o *options) {
@@ -56,9 +47,6 @@ func Apply(c *pb.ServerConfig) Option {
 	return func(o *options) {
 		o.network = c.Network
 		o.address = c.Address
-		if c.Timeout != nil {
-			o.timeout = c.Timeout.AsDuration()
-		}
 	}
 }
 
@@ -73,7 +61,6 @@ func NewServer(opts ...Option) *Server {
 	options := options{
 		network: "tcp",
 		address: ":9000",
-		timeout: time.Second,
 	}
 	for _, o := range opts {
 		o(&options)

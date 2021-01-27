@@ -4,7 +4,6 @@ import (
 	"context"
 	"net"
 	"net/http"
-	"time"
 
 	pb "github.com/go-kratos/kratos/v2/api/kratos/config/http"
 	"github.com/go-kratos/kratos/v2/server"
@@ -17,10 +16,9 @@ var _ server.Server = (*Server)(nil)
 type Option func(o *options)
 
 type options struct {
-	transport *transport.Server
 	network   string
 	address   string
-	timeout   time.Duration
+	transport *transport.Server
 }
 
 // Network with server network.
@@ -37,13 +35,6 @@ func Address(addr string) Option {
 	}
 }
 
-// Timeout with timeout.
-func Timeout(timeout time.Duration) Option {
-	return func(o *options) {
-		o.timeout = timeout
-	}
-}
-
 // Transport with server transport.
 func Transport(trans *transport.Server) Option {
 	return func(o *options) {
@@ -56,9 +47,6 @@ func Apply(c *pb.ServerConfig) Option {
 	return func(o *options) {
 		o.network = c.Network
 		o.address = c.Address
-		if c.Timeout != nil {
-			o.timeout = c.Timeout.AsDuration()
-		}
 	}
 }
 
@@ -73,7 +61,6 @@ func NewServer(opts ...Option) *Server {
 	options := options{
 		network: "tcp",
 		address: ":8000",
-		timeout: time.Second,
 	}
 	for _, o := range opts {
 		o(&options)
@@ -81,9 +68,7 @@ func NewServer(opts ...Option) *Server {
 	return &Server{
 		opts: options,
 		Server: &http.Server{
-			Handler:      options.transport,
-			ReadTimeout:  options.timeout,
-			WriteTimeout: options.timeout,
+			Handler: options.transport,
 		},
 	}
 }

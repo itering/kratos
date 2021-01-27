@@ -80,9 +80,7 @@ func NewClient(target string, opts ...ClientOption) (*grpc.ClientConn, error) {
 	}
 	var grpcOpts = []grpc.DialOption{
 		grpc.WithTimeout(client.timeout),
-		grpc.WithUnaryInterceptor(
-			ChainUnaryClient(client.unaryInterceptor(), client.in),
-		),
+		grpc.WithChainUnaryInterceptor(client.unaryInterceptor(), client.in),
 	}
 	if client.insecure {
 		grpcOpts = append(grpcOpts, grpc.WithInsecure())
