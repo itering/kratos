@@ -20,7 +20,6 @@ type Option func(*options)
 
 type options struct {
 	prefix string
-	path   string
 	flag   int
 	skip   int
 	out    io.WriteCloser
@@ -54,13 +53,6 @@ func Writer(out io.WriteCloser) Option {
 	}
 }
 
-// Path with logger path.
-func Path(path string) Option {
-	return func(o *options) {
-		o.path = path
-	}
-}
-
 // Logger is std logger.
 type Logger struct {
 	opts options
@@ -69,7 +61,7 @@ type Logger struct {
 }
 
 // NewLogger new a std logger with options.
-func NewLogger(opts ...Option) (*Logger, error) {
+func NewLogger(opts ...Option) *Logger {
 	options := options{
 		flag: stdlog.LstdFlags,
 		skip: 4,
@@ -77,13 +69,6 @@ func NewLogger(opts ...Option) (*Logger, error) {
 	}
 	for _, o := range opts {
 		o(&options)
-	}
-	if options.path != "" {
-		file, err := os.OpenFile(options.path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
-		if err != nil {
-			return nil, err
-		}
-		options.out = file
 	}
 	return &Logger{
 		opts: options,
@@ -93,7 +78,7 @@ func NewLogger(opts ...Option) (*Logger, error) {
 				return new(bytes.Buffer)
 			},
 		},
-	}, nil
+	}
 }
 
 func (s *Logger) stackTrace(path string) string {
@@ -121,7 +106,7 @@ func (s *Logger) Print(kvpair ...interface{}) {
 		buf.WriteString(fmt.Sprintf("source=%s:%d ", s.stackTrace(file), line))
 	}
 	for i := 0; i < len(kvpair); i += 2 {
-		fmt.Fprintf(buf, "%s=%s ", kvpair[i], kvpair[i+1])
+		fmt.Fprintf(buf, "%s=%v ", kvpair[i], kvpair[i+1])
 	}
 	s.log.Println(buf.String())
 	buf.Reset()

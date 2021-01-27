@@ -6,6 +6,9 @@ import (
 
 	"github.com/go-kratos/kratos/v2/errors"
 	pb "github.com/go-kratos/kratos/v2/examples/helloworld/helloworld"
+	"github.com/go-kratos/kratos/v2/middleware"
+	"github.com/go-kratos/kratos/v2/middleware/recovery"
+	"github.com/go-kratos/kratos/v2/middleware/status"
 	transgrpc "github.com/go-kratos/kratos/v2/transport/grpc"
 	transhttp "github.com/go-kratos/kratos/v2/transport/http"
 )
@@ -43,6 +46,12 @@ func callGRPC() {
 	conn, err := transgrpc.NewClient(
 		"127.0.0.1:9000",
 		transgrpc.ClientInsecure(),
+		transgrpc.ClientMiddleware(
+			middleware.Chain(
+				status.Client(),
+				recovery.Recovery(),
+			),
+		),
 	)
 	if err != nil {
 		log.Fatal(err)

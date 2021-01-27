@@ -44,11 +44,22 @@ func Errorf(code int32, reason, format string, a ...interface{}) error {
 	return Error(code, reason, fmt.Sprintf(format, a...))
 }
 
-// Reason returns the gRPC status for a particular error.
+// Reason returns the status for a particular error.
 // It supports wrapped errors.
 func Reason(err error) string {
 	if se := new(StatusError); errors.As(err, &se) {
 		return se.Reason
 	}
 	return UnknownReason
+}
+
+// Code returns the status code.
+func Code(err error) int32 {
+	if err == nil {
+		return 0 // ok
+	}
+	if se := new(StatusError); errors.As(err, &se) {
+		return se.Code
+	}
+	return 2 // unknown
 }

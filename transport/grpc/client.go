@@ -11,9 +11,6 @@ import (
 // ClientOption is gRPC client option.
 type ClientOption func(o *Client)
 
-// ClientDecodeErrorFunc is encode error func.
-type ClientDecodeErrorFunc func(err error) error
-
 // ClientContext with client context.
 func ClientContext(ctx context.Context) ClientOption {
 	return func(c *Client) {
@@ -35,11 +32,17 @@ func ClientInsecure() ClientOption {
 	}
 }
 
+// ClientMiddleware with server middleware.
+func ClientMiddleware(m middleware.Middleware) ClientOption {
+	return func(o *Client) {
+		o.middleware = m
+	}
+}
+
 // Client is grpc transport client.
 type Client struct {
 	ctx        context.Context
 	insecure   bool
-	block      bool
 	timeout    time.Duration
 	middleware middleware.Middleware
 }
@@ -56,7 +59,7 @@ func NewClient(target string, opts ...ClientOption) (*grpc.ClientConn, error) {
 	}
 	var grpcOpts = []grpc.DialOption{
 		grpc.WithTimeout(client.timeout),
-		grpc.WithChainUnaryInterceptor(client.unaryInterceptor()),
+		grpc.WithUnaryInterceptor(client.unaryInterceptor()),
 	}
 	if client.insecure {
 		grpcOpts = append(grpcOpts, grpc.WithInsecure())
@@ -65,10 +68,14 @@ func NewClient(target string, opts ...ClientOption) (*grpc.ClientConn, error) {
 }
 
 func (c *Client) unaryInterceptor() grpc.UnaryClientInterceptor {
-	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) (err error) {
-		if err := invoker(ctx, method, req, reply, cc, opts...); err != nil {
-			return err
+	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+		h := func(ctx context.Context, req interface{}) (interface{}, error) {
+			return reply, invoker(ctx, method, req, reply, cc, opts...)
 		}
-		return nil
+		if c.middleware != nil {
+			h = c.middleware(h)
+		}
+		_, err := h(ctx, req)
+		return err
 	}
 }
