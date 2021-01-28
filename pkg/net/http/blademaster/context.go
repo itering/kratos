@@ -4,7 +4,6 @@ import (
 	"context"
 	"math"
 	"net/http"
-	"strconv"
 	"strings"
 	"sync"
 	"text/template"
@@ -383,9 +382,7 @@ func (c *Context) mustBindWith(obj interface{}, b binding.Binding) (err error) {
 	return
 }
 
-func writeStatusCode(w http.ResponseWriter, ecode int) {
-	header := w.Header()
-	header.Set("kratos-status-code", strconv.FormatInt(int64(ecode), 10))
+func writeStatusCode(_ http.ResponseWriter, _ int) {
 }
 
 // RemoteIP implements a best effort algorithm to return the real client IP, it parses
