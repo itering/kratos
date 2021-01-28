@@ -10,9 +10,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/go-kratos/kratos/pkg/net/rpc/warden"
-	"github.com/go-kratos/kratos/pkg/net/rpc/warden/internal/benchmark/bench/proto"
-	xtime "github.com/go-kratos/kratos/pkg/time"
+	"github.com/itering/kratos/pkg/net/rpc/warden"
+	"github.com/itering/kratos/pkg/net/rpc/warden/internal/benchmark/bench/proto"
+	xtime "github.com/itering/kratos/pkg/time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"

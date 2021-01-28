@@ -6,8 +6,8 @@ import (
 	"net/http/httptrace"
 	"strconv"
 
-	"github.com/go-kratos/kratos/pkg/net/metadata"
-	"github.com/go-kratos/kratos/pkg/net/trace"
+	"github.com/itering/kratos/pkg/net/metadata"
+	"github.com/itering/kratos/pkg/net/trace"
 )
 
 const _defaultComponentName = "net/http"

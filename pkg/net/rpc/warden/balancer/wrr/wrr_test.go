@@ -9,10 +9,10 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/go-kratos/kratos/pkg/conf/env"
-	nmd "github.com/go-kratos/kratos/pkg/net/metadata"
-	wmeta "github.com/go-kratos/kratos/pkg/net/rpc/warden/internal/metadata"
-	"github.com/go-kratos/kratos/pkg/stat/metric"
+	"github.com/itering/kratos/pkg/conf/env"
+	nmd "github.com/itering/kratos/pkg/net/metadata"
+	wmeta "github.com/itering/kratos/pkg/net/rpc/warden/internal/metadata"
+	"github.com/itering/kratos/pkg/stat/metric"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/balancer"

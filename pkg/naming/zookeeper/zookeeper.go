@@ -12,9 +12,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/go-kratos/kratos/pkg/log"
-	"github.com/go-kratos/kratos/pkg/naming"
-	xtime "github.com/go-kratos/kratos/pkg/time"
+	"github.com/itering/kratos/pkg/log"
+	"github.com/itering/kratos/pkg/naming"
+	xtime "github.com/itering/kratos/pkg/time"
 	"github.com/go-zookeeper/zk"
 )
 

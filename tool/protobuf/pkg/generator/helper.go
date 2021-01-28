@@ -4,9 +4,9 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/go-kratos/kratos/tool/protobuf/pkg/extensions/gogoproto"
-	"github.com/go-kratos/kratos/tool/protobuf/pkg/tag"
-	"github.com/go-kratos/kratos/tool/protobuf/pkg/typemap"
+	"github.com/itering/kratos/tool/protobuf/pkg/extensions/gogoproto"
+	"github.com/itering/kratos/tool/protobuf/pkg/tag"
+	"github.com/itering/kratos/tool/protobuf/pkg/typemap"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 )
